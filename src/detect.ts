@@ -15,10 +15,18 @@ export class UnknownBrokerError extends Error {
 
 export function detectBroker(csvText: string): BrokerParser {
   const headers = readCsvHeaders(csvText);
-  const normalizedHeaders = new Set(headers.map((header) => normalizeHeader(header)));
+
+  // normalizeCsvText already runs inside readCsvHeaders, so multi-line
+  // headers like "Buy/\nSell" are already collapsed to "Buy/Sell" here.
+  // BrokerParser.requiredHeaders must use the post-normalized form.
+  const normalizedHeaders = new Set(
+    headers.map((header) => normalizeHeader(header))
+  );
 
   const parser = brokerParsers.find((candidate) =>
-    candidate.requiredHeaders.every((header) => normalizedHeaders.has(normalizeHeader(header)))
+    candidate.requiredHeaders.every((header) =>
+      normalizedHeaders.has(normalizeHeader(header))
+    )
   );
 
   if (!parser) {

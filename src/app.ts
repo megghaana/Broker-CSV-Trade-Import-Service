@@ -6,8 +6,8 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024,
-    files: 1
-  }
+    files: 1,
+  },
 });
 
 export function createApp(): express.Express {
@@ -31,6 +31,7 @@ export function createApp(): express.Express {
     }
   });
 
+  // All 4 args required — Express identifies error handlers by arity
   app.use(
     (
       error: unknown,
@@ -44,11 +45,12 @@ export function createApp(): express.Express {
       }
 
       if (error instanceof multer.MulterError) {
-        response.status(400).json({ error: error.message });
+        response.status(400).json({ error: `File upload error: ${error.message}` });
         return;
       }
 
-      const message = error instanceof Error ? error.message : "Unexpected import error";
+      const message =
+        error instanceof Error ? error.message : "Unexpected import error";
       response.status(500).json({ error: message });
     }
   );
