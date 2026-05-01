@@ -2,7 +2,8 @@
 
 A TypeScript service that normalizes broker trade-history CSV exports into a shared trade format.
 Supports Zerodha (Indian equity) and Interactive Brokers (IBKR) out of the box.
-Adding a new broker requires one new file and one line in the registry — nothing else changes.
+Adding a new broker requires one new parser file, one registry entry, and one
+`BrokerId` type entry.
 
 ## Requirements
 
@@ -165,7 +166,11 @@ tests/
 ## Design Decisions
 
 **Registry pattern for broker parsers.**
-Each parser in `src/brokers/` declares the CSV column headers it requires and exposes a `parse` function. `detect.ts` iterates the registry and picks the first match. To add Broker C: create `src/brokers/brokerC.ts`, register it in `src/brokers/index.ts`. No other file changes.
+Each parser in `src/brokers/` declares the CSV column headers it requires and exposes a `parse` function. `detect.ts` iterates the registry and picks the first match. To add Broker C: create `src/brokers/brokerC.ts`, register it in `src/brokers/index.ts`, and add its ID to `BrokerId` in `src/types.ts`.
+
+`BrokerId` is intentionally kept as an explicit union type instead of a broad
+`string`. This adds one small update when a broker is added, but it lets
+TypeScript catch typos such as `zerodah` or `ikbr` at compile time.
 
 **Row-level error isolation.**
 A bad row never aborts the import. Each row is wrapped in a try/catch — failures are collected into the `errors` array with the 1-based row number and a human-readable reason. This is intentional: financial data is messy and partial imports are more useful than full rejections.
