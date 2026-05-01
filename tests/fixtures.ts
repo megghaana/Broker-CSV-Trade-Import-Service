@@ -15,7 +15,4 @@ U1234-004,U1234567,TSLA,04/03/2026,BOT,25,245.00,USD,-1.00,6124.00,STK
 U1234-005,U1234567,AMZN,2026-04-03T16:20:00Z,SLD,0,190.75,USD,-1.00,0.00,STK
 U1234-006,U1234567,GOOGL,2026-04-04T10:15:00Z,BOT,30,175.50,USD,,5265.00,STK`;
 
-export const pdfWrappedIbkrCsv = `TradeID,AccountID,Symbol,DateTime,Buy/
-Sell,Quantity,TradePrice,Currency,Commission,NetAmount,AssetClass
-U1234-003,U1234567,EUR.USD,2026-04-02T09:00:00Z,BOT,10000,1.0850,USD,-2.00,10848.00,CA
-SH`;
+export const pdfWrappedIbkrCsv = `TradeID,AccountID,Symbol,DateTime,Buy/\nSell,Quantity,TradePrice,Currency,Commission,NetAmount,AssetClass\nU1234-003,U1234567,EUR.USD,2026-04-02T09:00:00Z,BOT,10000,1.0850,USD,-2.00,10848.00,CA\nSH`;
