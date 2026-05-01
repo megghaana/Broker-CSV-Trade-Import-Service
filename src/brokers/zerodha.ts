@@ -1,44 +1,86 @@
 import { readCsvRows } from "../csv.js";
 import { parseDdMmYyyy } from "../date.js";
-import { humanizeError } from "../errors.js";
 import { parseRequiredNumber } from "../number.js";
-import { TradeSchema, type Trade, type TradeSide } from "../schema.js";
+import { TradeSchema } from "../schema.js";
+import { humanizeError } from "../error.js";
 import type { BrokerParser, ParseResult, RowError } from "../types.js";
+import type { Trade } from "../schema.js";
 
-const BROKER_ID = "zerodha" as const;
+// Infer currency from Indian exchange identifiers.
+// NSE and BSE always settle in INR — it is never present in the CSV.
+function inferCurrency(exchange: string): string {
+  const upper = exchange.trim().toUpperCase();
+  if (upper === "NSE" || upper === "BSE") return "INR";
+  return "INR"; // default for unknown Indian exchanges
+}
+
+// Normalise side: Zerodha uses lowercase "buy"/"sell" but row 5 has "SELL"
+function parseSide(value: string): "BUY" | "SELL" {
+  const upper = value.trim().toUpperCase();
+  if (upper === "BUY") return "BUY";
+  if (upper === "SELL") return "SELL";
+  throw new Error(`Unknown trade side: '${value}'`);
+}
 
 export const zerodhaParser: BrokerParser = {
-  id: BROKER_ID,
-  requiredHeaders: ["symbol", "trade_date", "trade_type", "quantity", "price", "exchange"],
+  id: "zerodha",
+
+  // These are the columns that uniquely identify a Zerodha CSV.
+  // "isin" and "segment" are not in IBKR, so this set is unambiguous.
+  requiredHeaders: ["symbol", "trade_date", "trade_type", "quantity", "price", "exchange", "segment"],
+
   parse(csvText: string): ParseResult {
     const rows = readCsvRows(csvText);
     const trades: Trade[] = [];
     const errors: RowError[] = [];
 
-    rows.forEach((row, index) => {
-      const rowNumber = index + 1;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]!;
+      // row index in error messages is 1-based and skips the header row
+      const rowNumber = i + 2;
 
       try {
-        const symbol = row.symbol?.trim();
-        const side = parseSide(row.trade_type ?? "");
-        const quantity = parseRequiredNumber(row.quantity ?? "", "Quantity");
-        const price = parseRequiredNumber(row.price ?? "", "Price");
-        const executedAt = parseDdMmYyyy(row.trade_date ?? "");
-
-        if (!executedAt) {
-          throw new Error(`Invalid date: '${row.trade_date ?? ""}'`);
+        // --- Date ---
+        const rawDate = row["trade_date"] ?? "";
+        const executedAt = parseDdMmYyyy(rawDate);
+        if (executedAt === null) {
+          throw new Error(`Invalid date: '${rawDate}'`);
         }
+
+        // --- Side ---
+        const side = parseSide(row["trade_type"] ?? "");
+
+        // --- Quantity (must be positive) ---
+        const quantity = parseRequiredNumber(row["quantity"] ?? "", "quantity");
+        if (quantity <= 0) {
+          throw new Error(`Quantity must be positive, got ${quantity}`);
+        }
+
+        // --- Price ---
+        const price = parseRequiredNumber(row["price"] ?? "", "price");
+
+        // --- Symbol ---
+        const symbol = (row["symbol"] ?? "").trim();
+        if (symbol.length === 0) {
+          throw new Error("symbol is required");
+        }
+
+        // --- Currency (inferred, never in CSV) ---
+        const currency = inferCurrency(row["exchange"] ?? "");
+
+        // --- totalAmount: negative for sells, positive for buys ---
+        const totalAmount = side === "SELL" ? -(quantity * price) : quantity * price;
 
         const trade = TradeSchema.parse({
           symbol,
           side,
           quantity,
           price,
-          totalAmount: side === "SELL" ? -(quantity * price) : quantity * price,
-          currency: inferCurrency(row.exchange ?? ""),
+          totalAmount,
+          currency,
           executedAt,
-          broker: BROKER_ID,
-          rawData: row
+          broker: "zerodha",
+          rawData: { ...row },
         });
 
         trades.push(trade);
@@ -46,44 +88,20 @@ export const zerodhaParser: BrokerParser = {
         errors.push({
           row: rowNumber,
           reason: humanizeError(error),
-          rawData: row
+          rawData: { ...row },
         });
       }
-    });
-
-    return buildResult(trades, errors, rows.length);
-  }
-};
-
-function parseSide(value: string): TradeSide {
-  const normalized = value.trim().toUpperCase();
-
-  if (normalized === "BUY" || normalized === "SELL") {
-    return normalized;
-  }
-
-  throw new Error(`Invalid trade_type: '${value}'`);
-}
-
-function inferCurrency(exchange: string): string {
-  const normalized = exchange.trim().toUpperCase();
-
-  if (normalized === "NSE" || normalized === "BSE") {
-    return "INR";
-  }
-
-  throw new Error(`Cannot infer currency from exchange: '${exchange}'`);
-}
-
-function buildResult(trades: Trade[], errors: RowError[], total: number): ParseResult {
-  return {
-    broker: BROKER_ID,
-    trades,
-    errors,
-    summary: {
-      total,
-      valid: trades.length,
-      skipped: errors.length
     }
-  };
-}
+
+    return {
+      broker: "zerodha",
+      trades,
+      errors,
+      summary: {
+        total: rows.length,
+        valid: trades.length,
+        skipped: errors.length,
+      },
+    };
+  },
+};
