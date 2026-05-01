@@ -25,6 +25,15 @@ npm run dev
 
 Server starts at `http://localhost:3000`.
 
+Open the browser UI:
+
+```text
+http://localhost:3000/
+```
+
+Use the page to upload a Zerodha or IBKR CSV. The UI submits the file to
+`POST /import` and displays the normalized JSON response.
+
 Import a CSV:
 
 ```bash
@@ -48,7 +57,40 @@ curl http://localhost:3000/health
 npm test
 ```
 
+Expected result:
+
+```text
+Test Files  2 passed
+Tests       36 passed
+```
+
+Manual smoke checks:
+
+```bash
+# Start the server first
+npm run dev
+
+# In another terminal, check the API is alive
+curl http://localhost:3000/health
+
+# Or open the browser upload page
+http://localhost:3000/
+```
+
 ## API
+
+### `GET /`
+
+Serves a small browser UI for uploading CSV files and previewing the import
+result.
+
+### `GET /health`
+
+Returns a simple health-check payload.
+
+```json
+{ "ok": true }
+```
 
 ### `POST /import`
 
