@@ -161,6 +161,10 @@ tests/
   app.test.ts         HTTP endpoint tests (supertest)
   importService.test.ts  Parser unit tests for all edge cases
   fixtures.ts         Sample CSV strings used across tests
+package-lock.json
+package.json
+tsconfig.json
+vitest.config.ts
 ```
 
 ## Design Decisions
