@@ -2,7 +2,7 @@ import { readCsvRows } from "../csv.js";
 import { parseDdMmYyyy } from "../date.js";
 import { parseRequiredNumber } from "../number.js";
 import { TradeSchema } from "../schema.js";
-import { humanizeError } from "../error.js";
+import { humanizeError } from "../errors.js";
 import type { BrokerParser, ParseResult, RowError } from "../types.js";
 import type { Trade } from "../schema.js";
 
