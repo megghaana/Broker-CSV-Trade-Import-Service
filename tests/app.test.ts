@@ -10,6 +10,15 @@ describe("GET /health", () => {
   });
 });
 
+describe("GET /", () => {
+  it("serves the browser upload UI", async () => {
+    const response = await request(createApp()).get("/").expect(200);
+    expect(response.type).toBe("text/html");
+    expect(response.text).toContain("Broker CSV Import");
+    expect(response.text).toContain('type="file"');
+  });
+});
+
 describe("POST /import", () => {
   it("accepts a Zerodha CSV and returns parsed trades", async () => {
     const response = await request(createApp())
